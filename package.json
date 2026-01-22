@@ -1,0 +1,60 @@
+{
+  "name": "jcommit",
+  "version": "1.0.0",
+  "description": "Git Jira Commit Tool for Automated Workflow",
+  "main": "dist/index.js",
+  "bin": {
+    "jcommit": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "npm run build && node dist/index.js --version",
+    "lint": "echo 'No linting configured'",
+    "format": "echo 'No formatting configured'",
+    "preversion": "npm run test",
+    "version": "npm run build",
+    "postversion": "git push && git push --tags"
+  },
+  "keywords": [
+    "git",
+    "commit",
+    "jira",
+    "cli",
+    "workflow",
+    "typescript",
+    "automation",
+    "branch",
+    "ticket",
+    "project-management"
+  ],
+  "author": {
+    "name": "Izhan Ali"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/izhanali/jcommit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/izhanali/jcommit/issues"
+  },
+  "homepage": "https://github.com/izhanali/jcommit#readme",
+  "engines": {
+    "node": ">=18.16.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

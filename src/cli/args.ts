@@ -28,7 +28,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
 }
 
 export function showUsage(): void {
-  console.log(`jcommit - Jira-aware git commit helper
+  console.log(`jcommit - Jira-Git commit integration
 
 Usage:
   jcommit setup           Create or update the config file
@@ -41,5 +41,5 @@ Options:
 }
 
 export function showVersion(): void {
-  console.log('jcommit v1.0.0');
+  console.log('jcommit v1.0.1');
 }

@@ -35,50 +35,6 @@ npm install -g jcommit
 
 ```
 
-  
-
-## Quick Start
-
-  
-
-```sh
-
-jcommit setup
-
-jcommit
-
-```
-
-  
-
-## Usage
-
-  
-
-```sh
-
-jcommit
-
-```
-
-  
-
-Optional flags:
-
-  
-
-```sh
-
-jcommit --config /path/to/config.json
-
-jcommit --help
-
-jcommit --version
-
-```
-
-  
-
 ## Configuration
 
   
@@ -114,6 +70,46 @@ Optional fields:
 - `protectedBranches`: Array of protected branch names (default: `["master"]`)
 
   
+  
+
+## Quick Start
+
+  
+
+```sh
+
+jcommit setup
+
+
+```
+
+
+
+## Usage
+
+  
+
+```sh
+
+jcommit
+
+```
+
+  
+
+Optional flags:
+
+  
+
+```sh
+
+jcommit --config /path/to/config.json
+
+jcommit --help
+
+jcommit --version
+
+```
 
 ## Examples
 

@@ -30,7 +30,7 @@ export async function runSetup(configPath: string): Promise<void> {
     allowEmpty: true,
     hasExisting: Boolean(existingConfig.jiraApiToken),
   });
-  const jiraAssigneeId = await promptInput(rl, 'Jira assignee account ID', {
+  const jiraAssigneeId = await promptInput(rl, 'Jira assignee account ID (optional)', {
     required: false,
     defaultValue: existingConfig.jiraAssigneeId,
   });
@@ -61,7 +61,7 @@ export async function runSetup(configPath: string): Promise<void> {
     jiraDomain,
     jiraEmail,
     jiraApiToken: jiraApiToken || existingConfig.jiraApiToken || '',
-    jiraAssigneeId: jiraAssigneeId || undefined,
+    jiraAssigneeId: jiraAssigneeId || '',
     jiraProjectId,
     jiraIssueTypeId,
     protectedBranches,
@@ -164,7 +164,7 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     process.exit(1);
   }
 
-  const userInput = await promptInput(rl, 'Enter the summary or Jira work item ID (e.g., ORG-12345)', {
+  const userInput = await promptInput(rl, 'Enter the summary or Jira work item key (e.g., ORG-12345)', {
     required: true,
   });
 
@@ -175,12 +175,12 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
 
   if (/^[A-Za-z]+-[0-9]+$/.test(userInput)) {
     const jiraTicket = userInput;
-    printInfo('Fetching Jira ticket details...');
+    printInfo('Fetching Jira work item details...');
     try {
       const { summary: jiraSummary, status: jiraStatus } = await jiraService.getIssue(jiraTicket);
       if (jiraSummary && jiraStatus) {
         console.log('');
-        printInfo('Found Jira issue:');
+        printInfo('Found Jira work item:');
         console.log(`Ticket: ${jiraTicket}`);
         console.log(`Status: ${jiraStatus}`);
         console.log(`Summary: ${jiraSummary}`);
@@ -215,14 +215,14 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     const descriptionInput = await promptInput(rl, 'Enter the description (or \'n\' to skip)');
     const description = /^(n|N)$/.test(descriptionInput) ? summary : descriptionInput || summary;
 
-    printInfo('Creating Jira issue...');
+    printInfo('Creating Jira work item...');
     try {
       const issueKey = await jiraService.createIssue(summary, description);
-      printSuccess(`Created Jira issue: ${issueKey}`);
+      printSuccess(`Created Jira work item: ${issueKey}`);
       commitMessage = `${issueKey} | ${summary}`;
     } catch (error) {
       rl.close();
-      printError('Failed to create Jira issue');
+      printError('Failed to create Jira work item');
       printError((error as Error).message);
       process.exit(1);
     }
@@ -259,5 +259,5 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
   }
   rlPush.close();
 
-  printSuccess('Workflow completed successfully!');
+  printSuccess('Committed successfully!');
 }

@@ -17,15 +17,17 @@ export async function runSetup(configPath: string): Promise<void> {
     output: process.stdout,
   });
 
-  printInfo('=== jcommit configuration setup ===');
-
   printInfo(`
-  This interactive setup will guide you through creating or updating the jcommit configuration file for your Jira-Git integration.
-  Leave fields blank to keep existing values.
-  If you experience any issues, you can manually edit the config file at ${configPath}.
+┌─────────────────────────────────────────────────────────────────┐
+│                 jcommit configuration setup                     │
+└─────────────────────────────────────────────────────────────────┘
+
+This interactive setup will create or update your jcommit configuration for Jira-Git integration.
+• Leave fields blank to keep existing values
+• Manual edit path: ${configPath}
 `);
 
-  const jiraDomain = await promptInput(rl, 'Jira URL (e.g., https://company.atlassian.net)', {
+  const jiraDomain = await promptInput(rl, 'Jira URL (e.g., company.atlassian.net)', {
     required: true,
     defaultValue: existingConfig.jiraDomain,
   });

@@ -42,30 +42,35 @@ export function parseArgs(argv: string[]): ParsedArgs {
 
 export function showUsage(): void {
   console.log(`
-**jcommit** — Integrate Jira and Git seamlessly
+┌─────────────────────────────────────────────────────────────────┐
+│                     jcommit — Jira + Git CLI                    │
+│                Seamlessly integrate Jira and Git                │
+└─────────────────────────────────────────────────────────────────┘
 
-**Usage:**
-  $ jcommit [command] [options]
+Usage:
+  jcommit
 
-**Core Commands:**
-  setup               Start the interactive setup wizard to configure 
-                      Jira credentials and repository branch rules.
-  
+Commands:
+  setup               Start the interactive setup wizard
+                      (configure Jira credentials and branch rules)
   (default)           Run the commit workflow
 
-**Options:**
-  -c, --config <path>  Specify a custom path for the configuration file.
-  -h, --help           Display this help menu.
-  -v, --version        Display the current version of jcommit.
+Options:
+  -c, --config <path>  Use a custom configuration file path
+  -h, --help           Show this help message
+  -v, --version        Show current version and check for updates
 
-**Quick Start Workflow:**
-  1. Stage changes:       git add .
-  2. Start jcommit:       jcommit
+Quick Start:
+  1. Stage changes:    git add .
+  2. Run jcommit:      jcommit
 
-  The tool will help you create a branch, fetch Jira details, and format your commit.
+The tool will help you:
+  • Create or switch branches
+  • Fetch or Create Jira ticket
+  • Commit and push your work seamlessly
 
-  Note: Ensure you are running this command from within a Git-initialized folder.
-  `);
+Note: Run inside a Git-initialized repository.
+`);
 }
 
 function compareVersions(leftVersion: string, rightVersion: string): number {

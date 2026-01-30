@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { parseArgs, showUsage, showVersion } from './cli/args';
+import { checkForUpdates, parseArgs, showUsage, showVersion } from './cli/args';
 import { getConfigPath, readConfig, ensureRequiredConfig } from './config/config';
 import { runSetup, mainWorkflow } from './workflow/main';
 import { printError, printInfo, printSuccess, printWarning } from './utils/colors';
@@ -9,13 +9,16 @@ async function run(): Promise<void> {
 
   printSuccess('~ jcommit ~');
   printInfo('integrating Jira and Git seamlessly');
+  await checkForUpdates();
+  console.log('');
+
   const parsed = parseArgs(process.argv.slice(2));
   if (parsed.help) {
     showUsage();
     return;
   }
   if (parsed.version) {
-    showVersion();
+    await showVersion();
     return;
   }
 

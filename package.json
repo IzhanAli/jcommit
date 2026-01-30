@@ -1,6 +1,6 @@
 {
   "name": "jcommit",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Git Jira Commit Tool for Automated Workflow",
   "main": "dist/index.js",
   "bin": {

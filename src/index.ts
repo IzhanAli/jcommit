@@ -3,9 +3,12 @@
 import { parseArgs, showUsage, showVersion } from './cli/args';
 import { getConfigPath, readConfig, ensureRequiredConfig } from './config/config';
 import { runSetup, mainWorkflow } from './workflow/main';
-import { printError, printInfo } from './utils/colors';
+import { printError, printInfo, printSuccess, printWarning } from './utils/colors';
 
 async function run(): Promise<void> {
+
+  printSuccess('~ jcommit ~');
+  printInfo('integrating Jira and Git seamlessly');
   const parsed = parseArgs(process.argv.slice(2));
   if (parsed.help) {
     showUsage();
@@ -24,14 +27,15 @@ async function run(): Promise<void> {
 
   const config = readConfig(configPath);
   if (!config) {
-    printError(`Config not found at ${configPath}`);
-    printInfo('Run `jcommit setup` to create it.');
+    printWarning(`Config not found at ${configPath}`);
+    printInfo('It looks like this is your first time using jcommit. To get started, please run: jcommit setup');
     process.exit(1);
   }
   const missing = ensureRequiredConfig(config);
   if (missing.length) {
-    printError(`Config is missing: ${missing.join(', ')}`);
-    printInfo('Run `jcommit setup` to update it.');
+    printError('Your configuration is incomplete or outdated.');
+    printInfo(`The following fields are required: ${missing.join(', ')}`);
+    printInfo('Please update your settings by running: jcommit setup');
     process.exit(1);
   }
 
@@ -39,6 +43,7 @@ async function run(): Promise<void> {
 }
 
 run().catch((error) => {
-  printError(error.message || 'Unexpected error');
+  printError('Execution halted due to an unexpected error:');
+  printError(error.message || String(error));
   process.exit(1);
 });

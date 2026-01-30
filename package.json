@@ -15,7 +15,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build",
+    "prepublishOnly": "npm run clean && npm run build && chmod +x dist/index.js",
     "test": "npm run build && node dist/index.js --version",
     "lint": "echo 'No linting configured'",
     "format": "echo 'No formatting configured'",
@@ -41,7 +41,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/izhanali/jcommit.git"
+    "url": "git+https://github.com/izhanali/jcommit.git"
   },
   "bugs": {
     "url": "https://github.com/izhanali/jcommit/issues"

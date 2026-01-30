@@ -17,34 +17,45 @@ export async function runSetup(configPath: string): Promise<void> {
     output: process.stdout,
   });
 
-  printInfo(`Config path: ${configPath}`);
-  const jiraDomain = await promptInput(rl, 'Jira URL', {
+  printInfo('=== jcommit configuration setup ===');
+
+  printInfo(`
+  This interactive setup will guide you through creating or updating the jcommit configuration file for your Jira-Git integration.
+  Leave fields blank to keep existing values.
+  If you experience any issues, you can manually edit the config file at ${configPath}.
+`);
+
+  const jiraDomain = await promptInput(rl, 'Jira URL (e.g., https://company.atlassian.net)', {
     required: true,
     defaultValue: existingConfig.jiraDomain,
   });
-  const jiraEmail = await promptInput(rl, 'Email', {
+  const jiraEmail = await promptInput(rl, 'Email (e.g., user@company.com)', {
     required: true,
     defaultValue: existingConfig.jiraEmail,
   });
-  const jiraApiToken = await promptSecret(rl, 'Jira API token', {
-    allowEmpty: true,
-    hasExisting: Boolean(existingConfig.jiraApiToken),
-  });
-  const jiraAssigneeId = await promptInput(rl, 'Jira assignee account ID (optional)', {
+  const jiraApiToken = await promptSecret(
+    rl,
+    'Jira API token (create at https://id.atlassian.com/manage-profile/security/api-tokens; copy token, not label)',
+    {
+      allowEmpty: true,
+      hasExisting: Boolean(existingConfig.jiraApiToken),
+    }
+  );
+  const jiraAssigneeId = await promptInput(rl, 'Default Jira assignee account ID (press enter to leave unassigned)', {
     required: false,
     defaultValue: existingConfig.jiraAssigneeId,
   });
-  const jiraProjectId = await promptInput(rl, 'Jira project ID', {
+  const jiraProjectId = await promptInput(rl, 'Jira project ID (e.g., 11203)', {
     required: true,
     defaultValue: existingConfig.jiraProjectId,
   });
-  const jiraIssueTypeId = await promptInput(rl, 'Jira issue type ID', {
+  const jiraIssueTypeId = await promptInput(rl, 'Jira issue type ID (e.g., 3)', {
     required: true,
     defaultValue: existingConfig.jiraIssueTypeId,
   });
   const protectedBranchesRaw = await promptInput(
     rl,
-    'Protected branches (comma-separated)',
+    'Enter protected branches (separated by commas)',
     {
       defaultValue: (existingConfig.protectedBranches || getDefaultProtectedBranches()).join(','),
     }
@@ -99,52 +110,54 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     output: process.stdout,
   });
 
-  if (await promptYesNo(rl, 'Do you want to create a new branch from another branch?')) {
+  const branchAction = await promptInput(
+    rl,
+    'Select branch action: [c]reate new branch from different branch, [s]witch branch, [u]se current branch',
+    { required: true }
+  );
+  const normalizedAction = branchAction.trim().toLowerCase();
+
+  if (normalizedAction === 'c' || normalizedAction === 'create') {
     printInfo('Available base branches:');
-    const branches = listRemoteBranches();
-    branches.forEach((branch) => console.log(`  - ${branch}`));
+    const remoteBranches = listRemoteBranches();
+    remoteBranches.forEach((branch) => console.log(`  - ${branch}`));
 
-    const baseBranch = await promptInput(rl, 'Enter base branch name', { required: true });
-    const newBranch = await promptInput(rl, 'Enter new branch name', { required: true });
+    const baseBranch = await promptInput(rl, 'Name of the source/base branch', { required: true });
+    const newBranchName = await promptInput(rl, 'Name for the new branch', { required: true });
 
-    if (!createBranchFromBase(baseBranch, newBranch)) {
+    if (!createBranchFromBase(baseBranch, newBranchName)) {
       rl.close();
-      printError(`Failed to create branch '${newBranch}' from '${baseBranch}'`);
+      printError(`Failed to create branch '${newBranchName}' from '${baseBranch}'`);
       process.exit(1);
     }
-    
-    // Switch to the newly created branch
-    if (!switchBranch(newBranch)) {
+
+    if (!switchBranch(newBranchName)) {
       rl.close();
-      printError(`Failed to switch to newly created branch '${newBranch}'`);
+      printError(`Failed to switch to newly created branch '${newBranchName}'`);
       process.exit(1);
     }
-    
-    currentBranch = newBranch;
-    printSuccess(`Created and switched to branch '${newBranch}' from '${baseBranch}'`);
-  }
 
-  if (!(await promptYesNo(rl, 'Do you want to continue with this branch?'))) {
+    currentBranch = newBranchName;
+    printSuccess(`Created and switched to branch '${newBranchName}' from '${baseBranch}'`);
+  } else if (normalizedAction === 's' || normalizedAction === 'switch') {
     printInfo('Available local branches:');
     listLocalBranches().forEach((branch) => console.log(`  - ${branch}`));
 
-    const newBranch = await promptInput(rl, 'Enter the branch name to checkout', {
+    const targetBranchName = await promptInput(rl, 'Name of the local branch to checkout', {
       required: true,
     });
-    if (!switchBranch(newBranch)) {
+    if (!switchBranch(targetBranchName)) {
       rl.close();
-      printError(`Failed to switch to branch '${newBranch}'`);
+      printError(`Failed to switch to branch '${targetBranchName}'`);
       process.exit(1);
     }
 
-    printSuccess(`Switched to branch '${newBranch}'`);
+    printSuccess(`Switched to branch '${targetBranchName}'`);
     currentBranch = getCurrentBranch();
-
-    if (!(await promptYesNo(rl, `You are now on branch '${currentBranch}'. Do you want to continue?`))) {
-      rl.close();
-      printInfo('Operation cancelled.');
-      process.exit(0);
-    }
+  } else if (normalizedAction !== 'u' && normalizedAction !== 'use') {
+    rl.close();
+    printError('Invalid branch action. Use create, switch, or use current.');
+    process.exit(1);
   }
 
   const diffResult = runGit(['diff', '--cached', '--quiet']);
@@ -164,7 +177,7 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     process.exit(1);
   }
 
-  const userInput = await promptInput(rl, 'Enter the summary or Jira work item key (e.g., ORG-12345)', {
+  const userInput = await promptInput(rl, 'Enter commit message to create a new Jira ticket OR Enter existing Jira ticket key (e.g., PROJ-1234) to fetch', {
     required: true,
   });
 
@@ -189,7 +202,7 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
         if (
           await promptYesNo(
             rl,
-            'Use this Jira ticket for the commit message? (y) or enter custom summary (n): '
+            'Confirm: Use this Jira ticket for the commit message? [y]es or enter custom summary [n]: '
           )
         ) {
           commitMessage = `${jiraTicket} | Fix: ${jiraSummary}`;
@@ -212,7 +225,7 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
   }
 
   if (!skipJiraCreation) {
-    const descriptionInput = await promptInput(rl, 'Enter the description (or \'n\' to skip)');
+    const descriptionInput = await promptInput(rl, 'Provide a detailed description (or \'n\' to skip & use summary)');
     const description = /^(n|N)$/.test(descriptionInput) ? summary : descriptionInput || summary;
 
     printInfo('Creating Jira work item...');
@@ -242,7 +255,7 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     input: process.stdin,
     output: process.stdout,
   });
-  if (await promptYesNo(rlPush, 'Do you want to push this commit to remote?')) {
+  if (await promptYesNo(rlPush, 'Push changes to the remote repository now? [y]es or [n]o: ')) {
     currentBranch = getCurrentBranch();
     printInfo('Pushing to remote...');
     const pushResult = runGit(['push', '--set-upstream', 'origin', currentBranch], {

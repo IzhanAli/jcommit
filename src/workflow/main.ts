@@ -91,6 +91,9 @@ This interactive setup will create or update your jcommit configuration for Jira
 }
 
 export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
+
+  printSuccess('Hi, ' + config.jiraEmail.split('@')[0]);
+
   printInfo('Committing changes to git');
 
   const gitCheck = runGit(['rev-parse', '--git-dir']);
@@ -105,7 +108,8 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     process.exit(1);
   }
 
-  printInfo(`You are on branch '${currentBranch}'`);
+  printInfo(`You are on branch:`);
+  printWarning(`${currentBranch}`);
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -179,14 +183,26 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     process.exit(1);
   }
 
-  const userInput = await promptInput(rl, 'Enter commit message to create a new Jira ticket OR Enter existing Jira ticket key (e.g., PROJ-1234) to fetch', {
+  const jiraService = new JiraService(config);
+
+  const openIssues = config.jiraAssigneeId 
+    ? await jiraService.getOpenIssues(config.jiraEmail, config.jiraAssigneeId) 
+    : await jiraService.getOpenIssues(config.jiraEmail);
+
+  if (openIssues.length > 0) {
+    console.log('');
+    printInfo('You have the following open Jira Work items:');
+    openIssues.forEach((issue) => printWarning(`${issue.id}`));
+    console.log('');
+  }
+
+  const userInput = await promptInput(rl, 'Enter commit message to create a new Jira ticket OR Enter existing Jira ticket key (e.g., PROJ-1234)', {
     required: true,
   });
 
   let summary = userInput;
   let commitMessage = '';
   let skipJiraCreation = false;
-  const jiraService = new JiraService(config);
 
   if (/^[A-Za-z]+-[0-9]+$/.test(userInput)) {
     const jiraTicket = userInput;

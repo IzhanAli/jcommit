@@ -7,8 +7,7 @@ import { printError, printInfo, printSuccess, printWarning } from './utils/color
 
 async function run(): Promise<void> {
 
-  printSuccess('~ jcommit ~');
-  printInfo('integrating Jira and Git seamlessly');
+  printInfo('~ jcommit ~');
   await checkForUpdates();
   console.log('');
 

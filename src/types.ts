@@ -16,6 +16,7 @@ export interface ParsedArgs {
 }
 
 export interface JiraIssue {
+  id: string;
   summary: string;
   status: string;
 }

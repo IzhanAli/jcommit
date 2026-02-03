@@ -1,26 +1,27 @@
 
 # jcommit
 
-jcommit integrates Jira-Git for your work so that you can commit faster and confidently
+jcommit integrates Jira-Git for your work automating branch & Jira ticket creation and preventing protected-branch commits to help you commit faster with confidence.
 
 - Helps you through seamless branch creation so that your work stays on top of latest changes.
 
 - Eliminates manual Jira work item creation by either:
 
+		
+		- Shows open work items based on your email or assignee so that you can use existing work item summary to keep your commit message consistent with the work item
 		- Automatic work item creation with assignee and mentioning the work item key in your commit message
-		- Using the existing work item summary to help you close the work item so that the commit message is consistent with the work item
 
 Built in TypeScript and designed to keep your accelerate code-push flow and consistent.
+> Use only if you want your commits to be linked to Jira issues.
+  
+
+### Why it's faster:
 
   
 
-### Why is it faster:
-
-  
-
-- **Jira integration**: Uses Jira API to create & assign or fetch issues and include keys in commit messages.
+- **Jira integration**: Uses Jira API to create & assign or fetch issues and include ticket ID in commit messages.
 - **Branch safety**: Prevent commits to protected branches.
-- **Remote sync**: Make your work sit on top, so it eliminates rebasing
+- **Remote sync with upstream**: Make your work sit on top, so it eliminates merging
 - **Push after commit**: Never forget creating PR again
 
   

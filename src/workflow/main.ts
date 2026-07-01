@@ -1,17 +1,22 @@
 import readline from 'readline/promises';
 import { GjCommitConfig } from '../types';
 import { printInfo, printSuccess, printError, printWarning } from '../utils/colors';
-import { runGit, listRemoteBranches, listLocalBranches, switchBranch, createBranchFromBase, getCurrentBranch } from '../utils/git';
-import { promptInput, promptYesNo } from '../utils/prompts';
+import { listRemoteBranches, listLocalBranches, switchBranch, createBranchFromBase, getCurrentBranch } from '../utils/git';
+import { promptInput, promptSecret, promptYesNo } from '../utils/prompts';
 import { JiraService } from '../services/jira';
-import { getDefaultProtectedBranches } from '../config/config';
+import { readConfig, writeConfig, ensureRequiredConfig, getDefaultProtectedBranches } from '../config/config';
+import {
+  assertGitRepo,
+  assertNotProtected,
+  assertStagedChanges,
+  commitChanges,
+  pushCurrentBranch,
+  requireCurrentBranch,
+} from './steps';
 
 export async function runSetup(configPath: string): Promise<void> {
-  const { readConfig, writeConfig, ensureRequiredConfig } = await import('../config/config');
   const existingConfig = readConfig(configPath) || {} as Partial<GjCommitConfig>;
-  const { promptInput, promptSecret } = await import('../utils/prompts');
-  const { printInfo, printSuccess, printError } = await import('../utils/colors');
-  
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -96,17 +101,9 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
 
   printInfo('Committing changes to git');
 
-  const gitCheck = runGit(['rev-parse', '--git-dir']);
-  if (gitCheck.status !== 0) {
-    printError('Not in a git repository!');
-    process.exit(1);
-  }
+  assertGitRepo();
 
-  let currentBranch = getCurrentBranch();
-  if (!currentBranch) {
-    printError('Failed to get current branch');
-    process.exit(1);
-  }
+  let currentBranch = requireCurrentBranch();
 
   printInfo(`You are on branch:`);
   printWarning(`${currentBranch}`);
@@ -166,33 +163,20 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     process.exit(1);
   }
 
-  const diffResult = runGit(['diff', '--cached', '--quiet']);
-  if (diffResult.status === 0) {
-    rl.close();
-    printError('No staged changes found. Please stage your changes before committing.');
-    process.exit(1);
-  }
+  assertStagedChanges();
 
-  const protectedBranches = Array.isArray(config.protectedBranches) && config.protectedBranches.length
-    ? config.protectedBranches
-    : getDefaultProtectedBranches();
-
-  if (protectedBranches.includes(currentBranch)) {
-    rl.close();
-    printError(`Operation cancelled. '${currentBranch}' is protected.`);
-    process.exit(1);
-  }
+  assertNotProtected(currentBranch, config);
 
   const jiraService = new JiraService(config);
 
-  const openIssues = config.jiraAssigneeId 
-    ? await jiraService.getOpenIssues(config.jiraEmail, config.jiraAssigneeId) 
+  const openIssues = config.jiraAssigneeId
+    ? await jiraService.getOpenIssues(config.jiraEmail, config.jiraAssigneeId)
     : await jiraService.getOpenIssues(config.jiraEmail);
 
   if (openIssues.length > 0) {
     console.log('');
     printInfo('You have the following open Jira Work items:');
-    openIssues.forEach((issue) => printWarning(`${issue.id}`));
+    openIssues.forEach((issue) => printWarning(`${issue.id}: ${issue.summary}`));
     console.log('');
   }
 
@@ -208,13 +192,14 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
     const jiraTicket = userInput;
     printInfo('Fetching Jira work item details...');
     try {
-      const { summary: jiraSummary, status: jiraStatus } = await jiraService.getIssue(jiraTicket);
+      const { summary: jiraSummary, status: jiraStatus, priority: jiraPriority } = await jiraService.getIssue(jiraTicket);
       if (jiraSummary && jiraStatus) {
         console.log('');
         printInfo('Found Jira work item:');
         console.log(`Ticket: ${jiraTicket}`);
         console.log(`Status: ${jiraStatus}`);
         console.log(`Summary: ${jiraSummary}`);
+        console.log(`Priority: ${jiraPriority}`);
         console.log('');
 
         if (
@@ -261,30 +246,14 @@ export async function mainWorkflow(config: GjCommitConfig): Promise<void> {
 
   rl.close();
 
-  printInfo('Committing...');
-  const commitResult = runGit(['commit', '-m', commitMessage], { stdio: 'inherit' });
-  if (commitResult.status !== 0) {
-    printError('Git commit failed');
-    process.exit(1);
-  }
-  printSuccess(`Git commit successful with message: ${commitMessage}`);
+  commitChanges(commitMessage);
 
   const rlPush = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
   });
   if (await promptYesNo(rlPush, 'Push changes to the remote repository now? [y]es or [n]o: ')) {
-    currentBranch = getCurrentBranch();
-    printInfo('Pushing to remote...');
-    const pushResult = runGit(['push', '--set-upstream', 'origin', currentBranch], {
-      stdio: 'inherit',
-    });
-    if (pushResult.status !== 0) {
-      rlPush.close();
-      printError('Git push failed');
-      process.exit(1);
-    }
-    printSuccess('Git push successful');
+    pushCurrentBranch();
   } else {
     printInfo('Commit was not pushed to remote.');
   }

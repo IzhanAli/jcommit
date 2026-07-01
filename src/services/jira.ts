@@ -30,11 +30,12 @@ export class JiraService {
     return JSON.parse(text);
   }
 
-  private toJiraIssue(fields: any): JiraIssue {
+  private toJiraIssue(issue: any): JiraIssue {
     return {
-      id: fields?.key || '',
-      summary: fields?.summary || '',
-      status: fields?.status?.name || '',
+      id: issue?.key || '',
+      summary: issue?.fields?.summary || '',
+      status: issue?.fields?.status?.name || '',
+      priority: issue?.fields?.priority?.name || '',
     };
   }
 
@@ -92,16 +93,16 @@ export class JiraService {
 
   async getIssue(issueId: string): Promise<JiraIssue> {
     const data = await this.fetchJiraJson(
-      `https://${this.config.jiraDomain}/rest/api/3/issue/${issueId}?fields=summary,status`,
+      `https://${this.config.jiraDomain}/rest/api/3/issue/${issueId}?fields=summary,status,priority`,
       'Failed to fetch Jira issue.'
     );
-    return this.toJiraIssue(data.fields);
+    return this.toJiraIssue(data);
   }
 
   async getOpenIssues(jiraEmail: string, jiraAssigneeId?: string): Promise<JiraIssue[]> {
   const assignee = jiraAssigneeId ? `"${jiraAssigneeId}"` : `"${jiraEmail}"`;
   
-  const jql = `assignee = ${assignee} AND statusCategory != Done ORDER BY created ASC`;
+  const jql = `assignee = ${assignee} AND resolution = Unresolved AND status in ("Open","Reopened", "To Do", "In Progress") ORDER BY created ASC`;
 
   const response = await fetch(`https://${this.config.jiraDomain}/rest/api/3/search/jql`, {
     method: 'POST', 
@@ -112,7 +113,7 @@ export class JiraService {
     },
     body: JSON.stringify({
       jql: jql,
-      fields: ['status'],
+      fields: ['summary', 'status'],
       maxResults: 100,
     }),
   });

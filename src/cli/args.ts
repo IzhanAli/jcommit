@@ -10,23 +10,61 @@ export function parseArgs(argv: string[]): ParsedArgs {
     configPath: null,
     help: false,
     version: false,
+    headless: false,
+    message: null,
+    ticket: null,
+    description: null,
+    switchBranch: null,
+    createBranch: null,
+    baseBranch: null,
+    push: null,
   };
   const validCommands = ['setup'];
 
   while (args.length) {
-    const current = args.shift();
+    const raw = args.shift();
 
-    if (!current) continue;
+    if (!raw) continue;
+
+    // Support both "--flag value" and "--flag=value" forms.
+    let current = raw;
+    let inlineValue: string | undefined;
+    if (raw.startsWith('--') && raw.includes('=')) {
+      const eq = raw.indexOf('=');
+      current = raw.slice(0, eq);
+      inlineValue = raw.slice(eq + 1);
+    }
+    const takeValue = (): string | null => inlineValue ?? args.shift() ?? null;
 
     if (current === '-h' || current === '--help') {
       parsed.help = true;
     } else if (current === '-v' || current === '--version') {
       parsed.version = true;
     } else if (current === '-c' || current === '--config') {
-      parsed.configPath = args.shift() || null;
+      parsed.configPath = takeValue();
+    } else if (current === '-y' || current === '--yes' || current === '--headless' || current === '--non-interactive') {
+      parsed.headless = true;
+    } else if (current === '-m' || current === '--message') {
+      parsed.message = takeValue();
+    } else if (current === '-t' || current === '--ticket') {
+      parsed.ticket = takeValue();
+    } else if (current === '-d' || current === '--description') {
+      parsed.description = takeValue();
+    } else if (current === '-b' || current === '--branch' || current === '--switch') {
+      parsed.switchBranch = takeValue();
+    } else if (current === '--create-branch' || current === '--create') {
+      parsed.createBranch = takeValue();
+    } else if (current === '--base' || current === '--from') {
+      parsed.baseBranch = takeValue();
+    } else if (current === '--push') {
+      parsed.push = true;
+    } else if (current === '--no-push') {
+      parsed.push = false;
+    } else if (current.startsWith('-')) {
+      printError(`Unknown option: '${current}'`);
+      parsed.help = true;
     } else if (!parsed.command) {
-      // If it doesn't start with a dash and we don't have a command yet, 
-      // check if it's a known command or an unknown one.
+      // First bare token (no leading dash) is treated as the command.
       parsed.command = current;
     }
   }
@@ -35,6 +73,11 @@ export function parseArgs(argv: string[]): ParsedArgs {
   if (parsed.command && !validCommands.includes(parsed.command)) {
     printError(`Unknown command: '${parsed.command}'`);
     parsed.help = true; // Force help to show for guidance
+  }
+
+  // --message / --ticket have no meaning interactively, so they imply headless intent.
+  if (parsed.message || parsed.ticket) {
+    parsed.headless = true;
   }
 
   return parsed;
@@ -60,9 +103,29 @@ Options:
   -h, --help           Show this help message
   -v, --version        Show current version and check for updates
 
+Headless mode (no prompts — for CI, scripts, and git hooks):
+  -y, --headless       Run the workflow without any interactive prompts
+  -t, --ticket <KEY>   Use an existing Jira issue (e.g., PROJ-123)
+  -m, --message <text> Create a new Jira issue with this summary, or set a
+                       custom message when combined with --ticket
+  -d, --description    Description for the new Jira issue (defaults to message)
+  -b, --branch <name>  Switch to an existing branch before committing
+  --create-branch <n>  Create a new branch (requires --base)
+  --base <name>        Base branch for --create-branch
+  --push               Push to remote after committing
+  --no-push            Do not push (default in headless mode)
+
+  Passing --ticket or --message turns on headless mode automatically.
+
 Quick Start:
   1. Stage changes:    git add .
   2. Run jcommit:      jcommit
+
+Headless examples:
+  jcommit -t PROJ-123 --push                 Commit against an existing issue, then push
+  jcommit -m "fix login redirect" --push     Create an issue from the message, commit, push
+  jcommit -t PROJ-123 -m "custom message"    Existing issue with a custom commit message
+  jcommit -m "add cache" --create-branch feat/cache --base main
 
 The tool will help you:
   • Create or switch branches

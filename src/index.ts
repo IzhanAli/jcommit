@@ -3,13 +3,10 @@
 import { checkForUpdates, parseArgs, showUsage, showVersion } from './cli/args';
 import { getConfigPath, readConfig, ensureRequiredConfig } from './config/config';
 import { runSetup, mainWorkflow } from './workflow/main';
+import { runHeadless } from './workflow/headless';
 import { printError, printInfo, printSuccess, printWarning } from './utils/colors';
 
 async function run(): Promise<void> {
-
-  printInfo('~ jcommit ~');
-  await checkForUpdates();
-  console.log('');
 
   const parsed = parseArgs(process.argv.slice(2));
   if (parsed.help) {
@@ -19,6 +16,13 @@ async function run(): Promise<void> {
   if (parsed.version) {
     await showVersion();
     return;
+  }
+
+  // Keep headless output clean and fast — skip the banner and the network update check.
+  if (!parsed.headless) {
+    printInfo('~ jcommit ~');
+    await checkForUpdates();
+    console.log('');
   }
 
   const configPath = getConfigPath(parsed.configPath);
@@ -39,6 +43,19 @@ async function run(): Promise<void> {
     printInfo(`The following fields are required: ${missing.join(', ')}`);
     printInfo('Please update your settings by running: jcommit setup');
     process.exit(1);
+  }
+
+  if (parsed.headless) {
+    await runHeadless(config, {
+      message: parsed.message,
+      ticket: parsed.ticket,
+      description: parsed.description,
+      switchBranch: parsed.switchBranch,
+      createBranch: parsed.createBranch,
+      baseBranch: parsed.baseBranch,
+      push: parsed.push === true,
+    });
+    return;
   }
 
   await mainWorkflow(config);

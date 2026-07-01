@@ -54,7 +54,7 @@ JCOMMIT_CONFIG=/path/to/config.json jcommit setup
 
 Required configuration fields (references attached):
 
-- `jiraURL`: Your Jira domain (e.g., `company.atlassian.net`)
+- `jiraDomain`: Your Jira domain (e.g., `company.atlassian.net`)
 
 - `jiraEmail`: Your Jira email
 
@@ -137,6 +137,80 @@ Run with a custom config location:
 jcommit --config ./config/jcommit.json
 
 ```
+
+  
+
+## Headless mode (CI, scripts & git hooks)
+
+  
+
+Run the full workflow with **no interactive prompts** — every input comes from flags. Headless mode turns on when you pass `--headless`/`-y`, or automatically when you pass `--ticket` or `--message`.
+
+  
+
+```sh
+
+# Commit against an existing Jira issue, then push
+
+jcommit --ticket PROJ-123 --push
+
+  
+
+# Create a new Jira issue from the message, commit, and push
+
+jcommit --message "fix login redirect" --push
+
+  
+
+# Existing issue, but with a custom commit message (no Jira lookup)
+
+jcommit --ticket PROJ-123 --message "revert hotfix"
+
+  
+
+# Create a branch from a base, then commit
+
+jcommit --message "add cache layer" --create-branch feat/cache --base main
+
+```
+
+  
+
+Flags:
+
+  
+
+| Flag | Description |
+| --- | --- |
+| `-y`, `--headless` | Run without prompts (implied by `--ticket`/`--message`) |
+| `-t`, `--ticket <KEY>` | Use an existing Jira issue, e.g. `PROJ-123` |
+| `-m`, `--message <text>` | Summary for a new issue, or a custom message when paired with `--ticket` |
+| `-d`, `--description <text>` | Description for the new issue (defaults to the message) |
+| `-b`, `--branch <name>` | Switch to an existing branch before committing |
+| `--create-branch <name>` | Create a new branch (requires `--base`) |
+| `--base <name>` | Base branch for `--create-branch` |
+| `--push` / `--no-push` | Push after committing (default: no push) |
+
+  
+
+Pass exactly one of `--ticket` or `--message` (or both, to set a custom message on an existing issue). On any missing or conflicting input, headless mode prints a clear error and exits non-zero instead of hanging on a prompt — safe for CI.
+
+  
+
+## AI skill
+
+  
+
+This repo ships an AI skill — a standard `SKILL.md` — so an AI coding agent can drive jcommit for you, always non-interactively. It lives under `.agents/skills/jcommit/`:
+
+  
+
+- `SKILL.md` — installing/configuring jcommit and running it headless: choosing or creating a Jira issue, branch actions, committing/pushing, plus troubleshooting.
+- `references/commit-message.md` — writing Jira-title-style commit messages.
+
+  
+
+Point a compatible agent at the repo and ask, e.g. _"commit this with jcommit against PROJ-123"_ or _"create a Jira ticket for these changes and commit"_ — it runs the right headless flags for you.
 
   
 
@@ -229,6 +303,10 @@ src/
 
 └── workflow/
 
-└── main.ts # Main workflow logic
+    ├── main.ts # Interactive workflow + setup wizard
+
+    ├── headless.ts # Headless (non-interactive) workflow
+
+    └── steps.ts # Shared steps (git checks, commit, push)
 
 ```

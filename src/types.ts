@@ -13,12 +13,31 @@ export interface ParsedArgs {
   configPath: string | null;
   help: boolean;
   version: boolean;
+  headless: boolean;
+  message: string | null;
+  ticket: string | null;
+  description: string | null;
+  switchBranch: string | null;
+  createBranch: string | null;
+  baseBranch: string | null;
+  push: boolean | null;
+}
+
+export interface HeadlessOptions {
+  message: string | null;
+  ticket: string | null;
+  description: string | null;
+  switchBranch: string | null;
+  createBranch: string | null;
+  baseBranch: string | null;
+  push: boolean;
 }
 
 export interface JiraIssue {
   id: string;
   summary: string;
   status: string;
+  priority: string;
 }
 
 export interface JiraCreateRequest {
